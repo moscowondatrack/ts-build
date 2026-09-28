@@ -1,1 +1,44 @@
+# Положить в репозиторий как: .github/workflows/build.yml
+name: Build TorrServer softfloat mipsle
 
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Версия TorrServer (тег или ветка)"
+        default: "1.1.77"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Исходники TorrServer
+        uses: actions/checkout@v4
+        with:
+          repository: YouROK/TorrServer
+          ref: ${{ github.event.inputs.ref }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+          cache: false
+
+      - name: Сборка (mipsle, softfloat)
+        working-directory: server
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: mipsle
+          GOMIPS: softfloat
+        run: |
+          go build -tags nosqlite -ldflags "-s -w" -o ../TorrServer-linux-mipsle-softfloat ./cmd
+
+      - name: Публикация в Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: softfloat-${{ github.event.inputs.ref }}
+          name: TorrServer ${{ github.event.inputs.ref }} (mipsle softfloat)
+          files: TorrServer-linux-mipsle-softfloat
